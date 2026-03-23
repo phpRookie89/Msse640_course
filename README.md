@@ -1,3 +1,5 @@
+# Name: Shawn Wilkinson
+
 # Project1 - Triangle Checker
 
 ## Overview
