@@ -5,6 +5,11 @@ from triangle_data import save_triangle, get_all_triangles
 app = Flask(__name__)
 
 
+@app.route('/health', methods=['GET'])
+def health_check():
+    return jsonify({"status": "ok", "message": "Triangle API running"})
+
+
 @app.route('/triangles', methods=['GET'])
 def list_triangles():
 
