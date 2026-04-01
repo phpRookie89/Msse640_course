@@ -234,9 +234,13 @@ app.py              ← controller endpoints
 
 This separates business logic, data storage, and controller endpoints, mirroring enterprise software architecture practices.
 
+![Triangle API Running](screenshots/triangleRunning.png)
+
 ### Postman Collection
 
 **Collection created:** Triangle API Collection
+
+![Triangle API Collection](screenshots/triangleApiName.png)
 
 **Environment variable:**
 
@@ -271,6 +275,8 @@ Example response:
 }
 ```
 
+![GET All Triangles](screenshots/GET_ALL_triangles.png)
+
 #### POST Request – Valid Triangle
 
 ```
@@ -302,6 +308,8 @@ Response:
 }
 ```
 
+![POST Valid Triangle – Scalene](screenshots/postTest.png)
+
 #### POST Request – Equilateral Triangle
 
 Body:
@@ -322,6 +330,8 @@ Response:
 }
 ```
 
+![POST Equilateral Triangle](screenshots/equilateralTriangle.png)
+
 #### Error Scenario – Missing Parameter
 
 Body:
@@ -341,6 +351,8 @@ Response:
   "status": 400
 }
 ```
+
+![Error – Missing Side](screenshots/missingSide.png)
 
 ### Persistence Behavior
 
@@ -375,6 +387,38 @@ Additional integration tests performed:
 | `/triangles/summary` | GET |
 
 These requests validated API functionality and error handling behavior.
+
+#### GET /health
+
+![Health Check](screenshots/health.png)
+
+#### GET /triangles/{id}
+
+![GET Triangle by ID](screenshots/get_triangle.png)
+
+#### GET /triangles/{id} – Scalene Result
+
+![GET Triangle by ID – Scalene](screenshots/scalene.png)
+
+#### DELETE /triangles/{id}
+
+![DELETE Triangle](screenshots/Delete_triangle.png)
+
+#### POST – Isosceles Triangle
+
+![POST Isosceles Triangle](screenshots/isoselesTriangle.png)
+
+#### POST – Invalid Triangle (sides violate triangle inequality)
+
+![POST Invalid Triangle](screenshots/InvalidTest.png)
+
+#### POST – Not a Valid Triangle (400 error)
+
+![POST Not Valid Triangle](screenshots/not_valid.png)
+
+#### GET /triangles/{id} – 404 Not Found
+
+![GET Triangle Not Found](screenshots/not_found.png)
 
 ---
 
