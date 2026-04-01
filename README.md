@@ -238,7 +238,7 @@ This separates business logic, data storage, and controller endpoints, mirroring
 
 ### Postman Collection
 
-**Collection created:** Triangle API Collection
+**Collection created:** Triangle API Testing
 
 ![Triangle API Collection](screenshots/triangleApiName.png)
 
@@ -250,9 +250,26 @@ This separates business logic, data storage, and controller endpoints, mirroring
 
 This allows requests to be reused easily.
 
+#### Collection Requests
+
+All requests defined in `TriangleAPI.postman_collections.json`:
+
+| # | Name | Method | URL |
+|---|------|--------|-----|
+| 1 | Get All Triangles | GET | `{{url}}/triangles` |
+| 2 | Get Triangle by ID | GET | `{{url}}/triangles/1` |
+| 3 | Get Triangle by Invalid ID | GET | `{{url}}/triangles/999` |
+| 4 | Create Valid Triangle – Scalene | POST | `{{url}}/triangles` |
+| 5 | Create Valid Triangle – Equilateral | POST | `{{url}}/triangles` |
+| 6 | Create Valid Triangle – Isosceles | POST | `{{url}}/triangles` |
+| 7 | Create Invalid Triangle – Zero Side | POST | `{{url}}/triangles` |
+| 8 | Create Invalid Triangle – Negative Side | POST | `{{url}}/triangles` |
+| 9 | Create Invalid Triangle – Not a Triangle | POST | `{{url}}/triangles` |
+| 10 | Create Invalid Triangle – Missing Value | POST | `{{url}}/triangles` |
+
 ### Example Requests Tested
 
-#### GET Request – List Stored Triangles
+#### GET Request – List All Triangles
 
 ```
 GET {{url}}/triangles
@@ -261,18 +278,15 @@ GET {{url}}/triangles
 Example response:
 
 ```json
-{
-  "count": 1,
-  "items": [
-    {
-      "id": 1,
-      "a": 3,
-      "b": 4,
-      "c": 5,
-      "triangle_type": "Scalene"
-    }
-  ]
-}
+[
+  {
+    "a": 3,
+    "b": 4,
+    "c": 5,
+    "id": 1,
+    "triangle_type": "Scalene"
+  }
+]
 ```
 
 ![GET All Triangles](screenshots/GET_ALL_triangles.png)
