@@ -1,10 +1,14 @@
-Project 2 – Integration Testing with Postman
-Integration Testing Using a Triangle Classification API
+# Project 2 – Integration Testing with Postman
 
-Student Name: Shawn Wilkinson
-Course: MSSE 640
-Assignment: Project 2 – Integration Testing with Postman
-Date: March 2026
+## Integration Testing Using a Triangle Classification API
+
+## Student Name: Shawn Wilkinson
+
+## Course: MSSE 640
+
+## Assignment: Project 2 – Integration Testing with Postman
+
+## Date: March 2026
 
 Introduction
 
@@ -154,7 +158,7 @@ Google Maps API allows applications to display maps and calculate navigation rou
 
 Source:
 
-https://developers.google.com/maps/documentation
+<https://developers.google.com/maps/documentation>
 
 Cross-Origin Resource Sharing (CORS)
 
@@ -214,11 +218,11 @@ Google Maps API Navigation services
 
 Sources:
 
-https://jsonplaceholder.typicode.com
+[JSONPlaceholder](https://jsonplaceholder.typicode.com)
 
-https://api.nasa.gov
+[NASA Open API](https://api.nasa.gov)
 
-https://restcountries.com
+[REST Countries API](https://restcountries.com)
 
 Part 2 – Integration Testing Using Postman
 Triangle API Architecture
@@ -243,17 +247,13 @@ Collection created:
 
 Triangle API Collection
 
-📸 Insert screenshot here
-
 Environment Variable
 
 Environment variable created:
 
-{{url}} = http://127.0.0.1:5000
+{{url}} = `http://127.0.0.1:5000`
 
 This allows requests to be reused easily.
-
-📸 Insert screenshot here
 
 Example Requests Tested
 GET Request – List Stored Triangles
@@ -273,8 +273,6 @@ Example response:
 }
 ]
 }
-
-📸 Insert screenshot here
 
 POST Request – Valid Triangle
 POST {{url}}/triangles
@@ -300,8 +298,6 @@ Response:
 }
 }
 
-📸 Insert screenshot here
-
 POST Request – Equilateral Triangle
 {
 "a": 5,
@@ -312,8 +308,6 @@ POST Request – Equilateral Triangle
 Response:
 
 triangle_type: Equilateral
-
-📸 Insert screenshot here
 
 Error Scenario Example
 
@@ -330,8 +324,6 @@ Response:
 "error": "Missing triangle sides",
 "status": 400
 }
-
-📸 Insert screenshot here
 
 Persistence Behavior
 
@@ -365,11 +357,11 @@ Extra Credit – curl Requests
 
 Example request:
 
-curl http://127.0.0.1:5000/triangles
+curl <http://127.0.0.1:5000/triangles>
 
 Example POST request:
 
-curl -X POST http://127.0.0.1:5000/triangles \
+curl -X POST <http://127.0.0.1:5000/triangles> \
 -H "Content-Type: application/json" \
 -d '{"a":3,"b":4,"c":5}'
 
