@@ -234,13 +234,13 @@ app.py              ← controller endpoints
 
 This separates business logic, data storage, and controller endpoints, mirroring enterprise software architecture practices.
 
-![Triangle API Running](screenshots/triangleRunning.png)
+![Triangle API Running](Project2/screenshots/triangleRunning.png)
 
 ### Postman Collection
 
 **Collection created:** Triangle API Testing
 
-![Triangle API Collection](screenshots/triangleApiName.png)
+![Triangle API Collection](Project2/screenshots/triangleApiName.png)
 
 **Environment variable:**
 
@@ -291,7 +291,7 @@ Example response:
 
 **Screenshot Example:**
 
-![GET All Triangles](screenshots/GET_ALL_triangles.png)
+![GET All Triangles](Project2/screenshots/GET_ALL_triangles.png)
 
 #### POST Request – Valid Triangle
 
@@ -324,7 +324,7 @@ Response:
 }
 ```
 
-![POST Valid Triangle – Scalene](screenshots/postTest.png)
+![POST Valid Triangle – Scalene](Project2/screenshots/postTest.png)
 
 #### POST Request – Equilateral Triangle
 
@@ -346,7 +346,7 @@ Response:
 }
 ```
 
-![POST Equilateral Triangle](screenshots/equilateralTriangle.png)
+![POST Equilateral Triangle](Project2/screenshots/equilateralTriangle.png)
 
 #### Error Scenario – Missing Parameter
 
@@ -368,7 +368,7 @@ Response:
 }
 ```
 
-![Error – Missing Side](screenshots/missingSide.png)
+![Error – Missing Side](Project2/screenshots/missingSide.png)
 
 ### Persistence Behavior
 
@@ -406,35 +406,35 @@ These requests validated API functionality and error handling behavior.
 
 #### GET /health
 
-![Health Check](screenshots/health.png)
+![Health Check](Project2/screenshots/health.png)
 
 #### GET /triangles/{id}
 
-![GET Triangle by ID](screenshots/get_triangle.png)
+![GET Triangle by ID](Project2/screenshots/get_triangle.png)
 
 #### GET /triangles/{id} – Scalene Result
 
-![GET Triangle by ID – Scalene](screenshots/scalene.png)
+![GET Triangle by ID – Scalene](Project2/screenshots/scalene.png)
 
 #### DELETE /triangles/{id}
 
-![DELETE Triangle](screenshots/Delete_triangle.png)
+![DELETE Triangle](Project2/screenshots/Delete_triangle.png)
 
 #### POST – Isosceles Triangle
 
-![POST Isosceles Triangle](screenshots/isoselesTriangle.png)
+![POST Isosceles Triangle](Project2/screenshots/isoselesTriangle.png)
 
 #### POST – Invalid Triangle (sides violate triangle inequality)
 
-![POST Invalid Triangle](screenshots/InvalidTest.png)
+![POST Invalid Triangle](Project2/screenshots/InvalidTest.png)
 
 #### POST – Not a Valid Triangle (400 error)
 
-![POST Not Valid Triangle](screenshots/not_valid.png)
+![POST Not Valid Triangle](Project2/screenshots/not_valid.png)
 
 #### GET /triangles/{id} – 404 Not Found
 
-![GET Triangle Not Found](screenshots/not_found.png)
+![GET Triangle Not Found](Project2/screenshots/not_found.png)
 
 ---
 
