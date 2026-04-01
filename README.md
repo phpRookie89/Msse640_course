@@ -2,15 +2,16 @@
 
 ## Integration Testing Using a Triangle Classification API
 
-## Student Name: Shawn Wilkinson
+| | |
+|---|---|
+| **Student Name** | Shawn Wilkinson |
+| **Course** | MSSE 640 |
+| **Assignment** | Project 2 – Integration Testing with Postman |
+| **Date** | March 2026 |
 
-## Course: MSSE 640
+---
 
-## Assignment: Project 2 – Integration Testing with Postman
-
-## Date: March 2026
-
-Introduction
+## Introduction
 
 Modern distributed systems rely on Application Programming Interfaces (APIs) to enable communication between software components. Integration testing ensures these interfaces function correctly by verifying request handling, responses, and error scenarios.
 
@@ -18,366 +19,397 @@ In this project, a Triangle Classification API was developed using Python Flask 
 
 This project demonstrates how HTTP supports integration testing workflows in modern distributed applications.
 
-Part 1 – Research on APIs and Integration Testing
-Basic Functionality of HTTP
+---
+
+## Part 1 – Research on APIs and Integration Testing
+
+### Basic Functionality of HTTP
 
 HTTP (HyperText Transfer Protocol) enables communication between clients and servers.
 
-Clients
+#### Clients
 
-Clients send requests to servers.
+Clients send requests to servers. Examples include:
 
-Examples include:
+- Web browsers
+- Mobile applications
+- Postman
+- `curl` command-line tool
 
-Web browsers
-Mobile applications
-Postman
-curl command-line tool
+> In this lab, Postman acted as the client.
 
-In this lab, Postman acted as the client.
-
-Servers
+#### Servers
 
 Servers process incoming requests and return responses.
 
-Example:
+> The Flask Triangle API acted as the server in this project.
 
-The Flask Triangle API acted as the server in this project.
-
-Requests
+#### Requests
 
 HTTP requests contain:
 
-HTTP method
-URL
-Headers
-Optional body
+- HTTP method
+- URL
+- Headers
+- Optional body
 
 Example request:
 
+```
 POST /triangles
-Responses
+```
+
+#### Responses
 
 Servers return responses containing:
 
-Status codes
-Headers
-JSON data
+- Status codes
+- Headers
+- JSON data
 
 Example response:
 
+```json
 {
-"a": 3,
-"b": 4,
-"c": 5,
-"triangle_type": "Scalene"
+  "a": 3,
+  "b": 4,
+  "c": 5,
+  "triangle_type": "Scalene"
 }
-Headers vs Body
+```
+
+#### Headers vs Body
 
 Headers contain metadata:
 
+```
 Content-Type: application/json
+```
 
 Body contains transmitted data:
 
+```json
 {
-"a": 3,
-"b": 4,
-"c": 5
+  "a": 3,
+  "b": 4,
+  "c": 5
 }
-Status Codes
+```
+
+#### Status Codes
 
 Status codes describe request outcomes.
 
-Code Meaning
-200 Success
-201 Created
-400 Bad request
-404 Not found
-500 Server error
+| Code | Meaning |
+|------|---------|
+| 200 | Success |
+| 201 | Created |
+| 400 | Bad request |
+| 404 | Not found |
+| 500 | Server error |
 
-Example:
+Example: `400 Bad Request` occurs when triangle side values are missing.
 
-400 Bad Request
-
-Occurs when triangle side values are missing.
-
-HTTP Verbs
+#### HTTP Verbs
 
 HTTP verbs describe actions performed on resources.
 
-Verb Purpose
-GET Retrieve data
-POST Create data
-PUT Update data
-DELETE Remove data
+| Verb | Purpose |
+|------|---------|
+| GET | Retrieve data |
+| POST | Create data |
+| PUT | Update data |
+| DELETE | Remove data |
 
 Example endpoints used:
 
-GET /triangles
-POST /triangles
-PUT /triangles/{id}
+```
+GET    /triangles
+POST   /triangles
+PUT    /triangles/{id}
 DELETE /triangles/{id}
-Why HTTP is Stateless
+```
 
-HTTP is stateless because each request is processed independently.
+### Why HTTP is Stateless
 
-The server does not automatically remember previous interactions.
+HTTP is stateless because each request is processed independently. The server does not automatically remember previous interactions.
 
 State can be maintained using:
 
-cookies
-sessions
-tokens
+- Cookies
+- Sessions
+- Tokens
 
 Stateless architecture improves scalability and reliability.
 
-Role of APIs in Modern Applications
+### Role of APIs in Modern Applications
 
 APIs allow software components to communicate with each other.
 
-Example:
+> **Example:** The Triangle API receives triangle side values from a client application and returns classification results. This demonstrates how APIs enable interaction between frontend and backend systems.
 
-The Triangle API receives triangle side values from a client application and returns classification results.
-
-This demonstrates how APIs enable interaction between frontend and backend systems.
-
-Open APIs
+### Open APIs
 
 Open APIs are publicly accessible APIs available to developers.
 
 Benefits include:
 
-faster development
-interoperability
-third-party integrations
+- Faster development
+- Interoperability
+- Third-party integrations
 
-Example:
+> **Example:** Google Maps API allows applications to display maps and calculate navigation routes.
+>
+> Source: <https://developers.google.com/maps/documentation>
 
-Google Maps API allows applications to display maps and calculate navigation routes.
-
-Source:
-
-<https://developers.google.com/maps/documentation>
-
-Cross-Origin Resource Sharing (CORS)
+### Cross-Origin Resource Sharing (CORS)
 
 CORS controls whether web applications can access resources from another domain.
 
-Example:
-
+```
 localhost:3000 → frontend
 localhost:5000 → backend
+```
 
-Without CORS enabled:
-
-browser blocks requests
-
-With CORS enabled:
-
-requests are allowed
+- **Without CORS enabled:** browser blocks requests
+- **With CORS enabled:** requests are allowed
 
 CORS improves application security.
 
-API Security
+### API Security
 
-APIs are secured using authentication and encryption mechanisms.
+APIs are secured using authentication and encryption mechanisms. Common methods include:
 
-Common methods include:
+#### API Keys
 
-API Keys
-
-Example:
-
+```
 x-api-key: abc123
-OAuth 2.0
+```
+
+#### OAuth 2.0
 
 Used for delegated authentication such as logging in with Google.
 
-JWT Tokens
+#### JWT Tokens
 
-Example:
-
+```
 Authorization: Bearer token
-HTTPS Encryption
+```
+
+#### HTTPS Encryption
 
 Encrypts communication between client and server.
 
-The Triangle API used in this project runs locally and does not require authentication.
+> The Triangle API used in this project runs locally and does not require authentication.
 
-Five Public APIs
+### Five Public APIs
 
-Examples include:
-
-API Purpose
-JSONPlaceholder REST testing
-OpenWeather API Weather data
-NASA Open API Space data
-REST Countries API Country information
-Google Maps API Navigation services
+| API | Purpose |
+|-----|---------|
+| JSONPlaceholder | REST testing |
+| OpenWeather API | Weather data |
+| NASA Open API | Space data |
+| REST Countries API | Country information |
+| Google Maps API | Navigation services |
 
 Sources:
 
-[JSONPlaceholder](https://jsonplaceholder.typicode.com)
+- [JSONPlaceholder](https://jsonplaceholder.typicode.com)
+- [NASA Open API](https://api.nasa.gov)
+- [REST Countries API](https://restcountries.com)
 
-[NASA Open API](https://api.nasa.gov)
+---
 
-[REST Countries API](https://restcountries.com)
+## Part 2 – Integration Testing Using Postman
 
-Part 2 – Integration Testing Using Postman
-Triangle API Architecture
+### Triangle API Architecture
 
 The Triangle API uses a layered structure:
 
-triangle_model.py
-triangle_data.py
-app.py
+```
+triangle_model.py   ← business logic
+triangle_data.py    ← data storage
+app.py              ← controller endpoints
+```
 
-This separates:
+This separates business logic, data storage, and controller endpoints, mirroring enterprise software architecture practices.
 
-business logic
-data storage
-controller endpoints
+### Postman Collection
 
-This mirrors enterprise software architecture practices.
+**Collection created:** Triangle API Collection
 
-Postman Collection
+**Environment variable:**
 
-Collection created:
-
-Triangle API Collection
-
-Environment Variable
-
-Environment variable created:
-
-{{url}} = `http://127.0.0.1:5000`
+```
+{{url}} = http://127.0.0.1:5000
+```
 
 This allows requests to be reused easily.
 
-Example Requests Tested
-GET Request – List Stored Triangles
+### Example Requests Tested
+
+#### GET Request – List Stored Triangles
+
+```
 GET {{url}}/triangles
+```
 
 Example response:
 
+```json
 {
-"count": 1,
-"items": [
-{
-"id": 1,
-"a": 3,
-"b": 4,
-"c": 5,
-"triangle_type": "Scalene"
+  "count": 1,
+  "items": [
+    {
+      "id": 1,
+      "a": 3,
+      "b": 4,
+      "c": 5,
+      "triangle_type": "Scalene"
+    }
+  ]
 }
-]
-}
+```
 
-POST Request – Valid Triangle
+#### POST Request – Valid Triangle
+
+```
 POST {{url}}/triangles
+```
 
 Body:
 
+```json
 {
-"a": 3,
-"b": 4,
-"c": 5
+  "a": 3,
+  "b": 4,
+  "c": 5
 }
+```
 
 Response:
 
+```json
 {
-"message": "Triangle created",
-"item": {
-"id": 1,
-"a": 3,
-"b": 4,
-"c": 5,
-"triangle_type": "Scalene"
+  "message": "Triangle created",
+  "item": {
+    "id": 1,
+    "a": 3,
+    "b": 4,
+    "c": 5,
+    "triangle_type": "Scalene"
+  }
 }
-}
+```
 
-POST Request – Equilateral Triangle
+#### POST Request – Equilateral Triangle
+
+Body:
+
+```json
 {
-"a": 5,
-"b": 5,
-"c": 5
+  "a": 5,
+  "b": 5,
+  "c": 5
 }
+```
 
 Response:
 
-triangle_type: Equilateral
-
-Error Scenario Example
-
-Missing parameter example:
-
+```json
 {
-"a": 5,
-"b": 5
+  "triangle_type": "Equilateral"
 }
+```
+
+#### Error Scenario – Missing Parameter
+
+Body:
+
+```json
+{
+  "a": 5,
+  "b": 5
+}
+```
 
 Response:
 
+```json
 {
-"error": "Missing triangle sides",
-"status": 400
+  "error": "Missing triangle sides",
+  "status": 400
 }
+```
 
-Persistence Behavior
+### Persistence Behavior
 
 The Triangle API stores triangle records in memory using a simulated data layer.
 
 After executing:
 
+```
 POST /triangles
+```
 
-records remain available when calling:
+Records remain available when calling:
 
+```
 GET /triangles
+```
 
 This demonstrates persistence during runtime execution of the application.
 
-Additional Requests Created
+### Additional Requests Created
 
 Additional integration tests performed:
 
-GET /health
-GET /triangles
-POST /triangles
-GET /triangles/{id}
-PUT /triangles/{id}
-DELETE /triangles/{id}
-GET /triangles/summary
+| Endpoint | Method |
+|----------|--------|
+| `/health` | GET |
+| `/triangles` | GET |
+| `/triangles` | POST |
+| `/triangles/{id}` | GET |
+| `/triangles/{id}` | PUT |
+| `/triangles/{id}` | DELETE |
+| `/triangles/summary` | GET |
 
 These requests validated API functionality and error handling behavior.
 
-Extra Credit – curl Requests
+---
 
-Example request:
+## Extra Credit – curl Requests
 
-curl <http://127.0.0.1:5000/triangles>
+Example GET request:
+
+```bash
+curl http://127.0.0.1:5000/triangles
+```
 
 Example POST request:
 
-curl -X POST <http://127.0.0.1:5000/triangles> \
--H "Content-Type: application/json" \
--d '{"a":3,"b":4,"c":5}'
+```bash
+curl -X POST http://127.0.0.1:5000/triangles \
+  -H "Content-Type: application/json" \
+  -d '{"a":3,"b":4,"c":5}'
+```
 
-Advantages of curl:
+### Advantages of curl
 
-works in terminal environments
-useful for automation scripts
-lightweight compared to GUI tools
+- Works in terminal environments
+- Useful for automation scripts
+- Lightweight compared to GUI tools
 
-Advantages of Postman:
+### Advantages of Postman
 
-visual interface
-collections
-environment variables
-structured request testing
-Conclusion and Recommendations
+- Visual interface
+- Collections
+- Environment variables
+- Structured request testing
+
+---
+
+## Conclusion and Recommendations
 
 This lab demonstrated how integration testing verifies communication between clients and APIs using HTTP requests. Postman collections and environment variables improved request organization and testing efficiency.
 
