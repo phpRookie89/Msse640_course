@@ -289,6 +289,8 @@ Example response:
 ]
 ```
 
+**Screenshot Example:**
+
 ![GET All Triangles](screenshots/GET_ALL_triangles.png)
 
 #### POST Request – Valid Triangle
