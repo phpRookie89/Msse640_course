@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equivalence Classes — Vending Machine</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #1a1d27; --border: #2e3250;
+    --text: #e2e8f0; --muted: #64748b;
+    --ec1: #f76f6f; /* invalid */
+    --ec2: #f7a94f; /* zero */
+    --ec3: #f7c948; /* insufficient */
+    --ec4: #3ecf8e; /* exact */
+    --ec5: #4f8ef7; /* overpay */
+    --ec6: #a78bfa; /* rejected */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; min-height: 100vh; padding: 20px; }
+
+  h1 { text-align: center; font-size: 1.25rem; color: #4f8ef7; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: var(--muted); font-size: 0.8rem; margin-bottom: 20px; }
+
+  .layout { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 960px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+  .full { grid-column: 1 / -1; }
+
+  /* ── Input ── */
+  .input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .amount-input {
+    flex: 1; background: #0a0c12; border: 2px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 1.1rem; font-family: 'Courier New', monospace;
+    padding: 10px 14px; outline: none; transition: border-color 0.2s;
+  }
+  .amount-input:focus { border-color: #4f8ef7; }
+  .submit-btn {
+    padding: 10px 20px; background: #1a2a4a; border: 1px solid #4f8ef7;
+    border-radius: 8px; color: #4f8ef7; font-weight: 700; font-size: 0.9rem;
+    cursor: pointer; transition: all 0.15s;
+  }
+  .submit-btn:hover { background: #253560; }
+
+  .scenario-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px; }
+  .sc-btn {
+    padding: 5px 12px; border-radius: 16px; font-size: 0.75rem; font-weight: 600;
+    cursor: pointer; border: 1px solid; transition: all 0.15s;
+  }
+
+  /* ── Result banner ── */
+  .result-banner {
+    border-radius: 8px; padding: 14px 16px; margin-bottom: 14px;
+    border: 2px solid transparent; transition: all 0.3s; min-height: 64px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .result-icon { font-size: 2rem; flex-shrink: 0; }
+  .result-title { font-weight: 700; font-size: 1rem; }
+  .result-desc { font-size: 0.8rem; color: var(--muted); margin-top: 3px; }
+
+  /* ── Partition table ── */
+  .ec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+  .ec-table th { color: var(--muted); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 6px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  .ec-table td { padding: 7px 10px; border-bottom: 1px solid #1e2235; }
+  .ec-table tr.active td { background: #1e2240; font-weight: 600; }
+  .ec-badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; }
+
+  /* ── Number line ── */
+  .number-line-wrap { position: relative; margin: 18px 0 28px; }
+  .number-line-track { height: 14px; border-radius: 7px; display: flex; overflow: hidden; }
+  .nl-segment { height: 100%; transition: opacity 0.3s; }
+  .nl-markers { display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.68rem; color: var(--muted); }
+  .nl-pointer {
+    position: absolute; top: -6px; width: 2px; height: 26px;
+    background: white; border-radius: 1px; transform: translateX(-50%);
+    transition: left 0.3s; display: none;
+  }
+  .nl-pointer::after {
+    content: attr(data-val);
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    background: white; color: #0f1117; font-size: 0.68rem; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px; white-space: nowrap;
+  }
+
+  /* ── BVA highlight ── */
+  .bva-section h3 { font-size: 0.78rem; color: var(--muted); margin-bottom: 10px; }
+  .bv-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .bv-pill {
+    padding: 5px 12px; border-radius: 16px; font-size: 0.78rem;
+    border: 1px solid var(--border); background: #141620;
+    font-family: 'Courier New', monospace; transition: all 0.25s;
+  }
+  .bv-pill.hit { border-color: white; background: #252840; font-weight: 700; }
+
+  /* ── Machine visual ── */
+  .machine-wrap { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .machine-body {
+    width: 160px; background: #252840; border: 3px solid var(--border);
+    border-radius: 12px; padding: 12px; text-align: center;
+  }
+  .machine-screen {
+    background: #0a0c12; border: 2px solid #2e3250; border-radius: 6px;
+    padding: 8px; font-family: 'Courier New', monospace; font-size: 0.75rem;
+    color: #3ecf8e; min-height: 48px; margin-bottom: 8px;
+  }
+  .machine-slot {
+    width: 60px; height: 8px; background: #0a0c12; border: 2px solid var(--border);
+    border-radius: 4px; margin: 6px auto 0;
+  }
+  .machine-item {
+    font-size: 2.2rem; margin: 6px 0; transition: transform 0.3s;
+  }
+  .machine-item.pop { animation: pop 0.4s ease-out; }
+  @keyframes pop { 0%{transform:scale(0)} 60%{transform:scale(1.3)} 100%{transform:scale(1)} }
+
+  .change-tray {
+    font-size: 0.78rem; color: #f7c948; font-family: 'Courier New', monospace;
+    min-height: 20px; text-align: center;
+  }
+
+  @media (max-width: 640px) { .layout { grid-template-columns: 1fr; } .full { grid-column: 1; } }
+</style>
+</head>
+<body>
+
+<h1>Equivalence Class Testing — Vending Machine</h1>
+<p class="subtitle">Each equivalence class represents a partition where all inputs behave the same way · Cola costs $0.75</p>
+
+<div class="layout">
+
+  <!-- LEFT: Input + Result -->
+  <div class="panel">
+    <h2>Input</h2>
+    <div class="input-row">
+      <input class="amount-input" id="amount-in" type="text" placeholder="Enter amount, e.g. 0.75" oninput="onInput()" onkeydown="if(event.key==='Enter')test()">
+      <button class="submit-btn" onclick="test()">Test →</button>
+    </div>
+    <div class="scenario-row">
+      <button class="sc-btn" style="background:#1a0a0a;border-color:var(--ec1);color:var(--ec1)" onclick="preset('-0.50')">-$0.50 (invalid)</button>
+      <button class="sc-btn" style="background:#1a1200;border-color:var(--ec3);color:var(--ec3)" onclick="preset('0.40')">$0.40 (low)</button>
+      <button class="sc-btn" style="background:#0a1a0a;border-color:var(--ec4);color:var(--ec4)" onclick="preset('0.75')">$0.75 (exact)</button>
+      <button class="sc-btn" style="background:#0a1030;border-color:var(--ec5);color:var(--ec5)" onclick="preset('1.00')">$1.00 (over)</button>
+      <button class="sc-btn" style="background:#1a0a2a;border-color:var(--ec6);color:var(--ec6)" onclick="preset('9.99')">$9.99 (reject)</button>
+    </div>
+
+    <div style="margin-top:16px">
+      <div id="result-banner" class="result-banner" style="border-color:var(--border);background:#141620">
+        <div class="result-icon">🪙</div>
+        <div><div class="result-title">Waiting for input</div><div class="result-desc">Enter an amount and press Test</div></div>
+      </div>
+
+      <div class="machine-wrap">
+        <div class="machine-body">
+          <div class="machine-screen" id="machine-screen">INSERT COINS</div>
+          <div class="machine-item" id="machine-item">🥤</div>
+          <div class="machine-slot"></div>
+        </div>
+        <div class="change-tray" id="change-tray"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Partition table + number line -->
+  <div class="panel">
+    <h2>Equivalence Partitions</h2>
+
+    <div class="number-line-wrap" id="nl-wrap">
+      <div class="number-line-track">
+        <div class="nl-segment" style="width:8%;background:var(--ec1)" title="EC1: Invalid"></div>
+        <div class="nl-segment" style="width:2%;background:var(--ec2)" title="EC2: Zero"></div>
+        <div class="nl-segment" style="width:24%;background:var(--ec3)" title="EC3: Insufficient"></div>
+        <div class="nl-segment" style="width:3%;background:var(--ec4)" title="EC4: Exact"></div>
+        <div class="nl-segment" style="width:43%;background:var(--ec5)" title="EC5: Overpay"></div>
+        <div class="nl-segment" style="width:20%;background:var(--ec6)" title="EC6: Rejected"></div>
+      </div>
+      <div class="nl-markers">
+        <span>–∞</span><span>$0.00</span><span>$0.75</span><span>$5.00</span><span>+∞</span>
+      </div>
+      <div class="nl-pointer" id="nl-ptr" data-val=""></div>
+    </div>
+
+    <table class="ec-table" id="ec-table">
+      <thead><tr><th>Class</th><th>Range</th><th>Expected Behavior</th><th>Type</th></tr></thead>
+      <tbody>
+        <tr data-ec="1"><td><span class="ec-badge" style="background:var(--ec1)20;color:var(--ec1);border:1px solid var(--ec1)">EC1</span></td><td>Negative / non-numeric</td><td>Rejected — invalid input</td><td>Invalid</td></tr>
+        <tr data-ec="2"><td><span class="ec-badge" style="background:var(--ec2)20;color:var(--ec2);border:1px solid var(--ec2)">EC2</span></td><td>$0.00</td><td>No action — nothing inserted</td><td>Invalid</td></tr>
+        <tr data-ec="3"><td><span class="ec-badge" style="background:var(--ec3)20;color:var(--ec3);border:1px solid var(--ec3)">EC3</span></td><td>$0.01 – $0.74</td><td>Accepted — insufficient funds</td><td>Valid</td></tr>
+        <tr data-ec="4"><td><span class="ec-badge" style="background:var(--ec4)20;color:var(--ec4);border:1px solid var(--ec4)">EC4</span></td><td>$0.75</td><td>Dispensed — exact change</td><td>Valid</td></tr>
+        <tr data-ec="5"><td><span class="ec-badge" style="background:var(--ec5)20;color:var(--ec5);border:1px solid var(--ec5)">EC5</span></td><td>$0.76 – $5.00</td><td>Dispensed + change returned</td><td>Valid</td></tr>
+        <tr data-ec="6"><td><span class="ec-badge" style="background:var(--ec6)20;color:var(--ec6);border:1px solid var(--ec6)">EC6</span></td><td>> $5.00</td><td>Rejected — too much money</td><td>Invalid</td></tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:18px" class="bva-section">
+      <h3>Boundary Values (at class edges)</h3>
+      <div class="bv-pills" id="bv-pills">
+        <div class="bv-pill" data-bv="-0.01">–$0.01</div>
+        <div class="bv-pill" data-bv="0.00">$0.00</div>
+        <div class="bv-pill" data-bv="0.01">$0.01</div>
+        <div class="bv-pill" data-bv="0.74">$0.74</div>
+        <div class="bv-pill" data-bv="0.75">$0.75</div>
+        <div class="bv-pill" data-bv="0.76">$0.76</div>
+        <div class="bv-pill" data-bv="5.00">$5.00</div>
+        <div class="bv-pill" data-bv="5.01">$5.01</div>
+      </div>
+      <p style="font-size:0.72rem;color:var(--muted);margin-top:10px">Click any boundary value to test it instantly.</p>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PRICE = 0.75;
+const MAX   = 5.00;
+
+const CLASSES = {
+  1: { color: 'var(--ec1)', label: 'EC1 — Invalid Input',      icon: '🚫', desc: 'Input is negative or non-numeric. The machine rejects it before any processing.' },
+  2: { color: 'var(--ec2)', label: 'EC2 — Zero Amount',        icon: '⭕', desc: 'No coins inserted. Machine stays idle — nothing to process.' },
+  3: { color: 'var(--ec3)', label: 'EC3 — Insufficient Funds', icon: '⚠️', desc: `Amount accepted but not enough to buy Cola ($${PRICE.toFixed(2)}). Coins held, waiting for more.` },
+  4: { color: 'var(--ec4)', label: 'EC4 — Exact Change',       icon: '✅', desc: `Exact amount for Cola ($${PRICE.toFixed(2)}). Item dispensed, no change returned.` },
+  5: { color: 'var(--ec5)', label: 'EC5 — Overpay',            icon: '💰', desc: `More than enough. Item dispensed and change returned.` },
+  6: { color: 'var(--ec6)', label: 'EC6 — Rejected (Too Much)',icon: '🚫', desc: `Amount exceeds $${MAX.toFixed(2)} limit. Coins returned, transaction rejected.` },
+};
+
+function classify(raw) {
+  if (raw.trim() === '') return null;
+  const n = parseFloat(raw);
+  if (isNaN(n) || n < 0) return 1;
+  if (n === 0) return 2;
+  if (n > 0 && n < PRICE) return 3;
+  if (Math.abs(n - PRICE) < 0.001) return 4;
+  if (n > PRICE && n <= MAX) return 5;
+  return 6;
+}
+
+function test() {
+  const raw = document.getElementById('amount-in').value;
+  const ec = classify(raw);
+  if (ec === null) return;
+  const n = parseFloat(raw);
+  const info = CLASSES[ec];
+
+  // Result banner
+  const banner = document.getElementById('result-banner');
+  banner.style.borderColor = info.color;
+  banner.style.background  = info.color.replace('var(', '').replace(')', '') + '15';
+  banner.innerHTML = `
+    <div class="result-icon">${info.icon}</div>
+    <div>
+      <div class="result-title" style="color:${info.color}">${info.label}</div>
+      <div class="result-desc">${info.desc}</div>
+    </div>`;
+
+  // Machine screen + item
+  const screen = document.getElementById('machine-screen');
+  const itemEl = document.getElementById('machine-item');
+  const tray   = document.getElementById('change-tray');
+  itemEl.classList.remove('pop');
+
+  if (ec === 1) { screen.textContent = 'INVALID INPUT'; itemEl.textContent = '❌'; tray.textContent = ''; }
+  else if (ec === 2) { screen.textContent = 'INSERT COINS'; itemEl.textContent = '🥤'; tray.textContent = ''; }
+  else if (ec === 3) { screen.textContent = `$${n.toFixed(2)} inserted\nNeed $${(PRICE-n).toFixed(2)} more`; itemEl.textContent = '🥤'; tray.textContent = ''; }
+  else if (ec === 4) { screen.textContent = `$${n.toFixed(2)} — EXACT!\nDispensing...`; void itemEl.offsetWidth; itemEl.classList.add('pop'); itemEl.textContent = '🎉'; tray.textContent = 'No change due'; }
+  else if (ec === 5) { const ch = (n - PRICE).toFixed(2); screen.textContent = `$${n.toFixed(2)} accepted\nDispensing...`; void itemEl.offsetWidth; itemEl.classList.add('pop'); itemEl.textContent = '🎉'; tray.textContent = `Change: $${ch}`; }
+  else { screen.textContent = `$${n.toFixed(2)} REJECTED\nToo much money`; itemEl.textContent = '❌'; tray.textContent = `Returned: $${n.toFixed(2)}`; }
+
+  // Table highlight
+  document.querySelectorAll('#ec-table tr[data-ec]').forEach(r => r.classList.toggle('active', r.dataset.ec == ec));
+
+  // Number line pointer
+  const ptr = document.getElementById('nl-ptr');
+  if (!isNaN(n)) {
+    // Map: -∞…0=0%, 0…$5=$2.50 center, $5…∞=100%
+    // Simplified visual mapping: clamp to -1..6 display range
+    const display_min = -0.5, display_max = 6.0;
+    const clamped = Math.max(display_min, Math.min(display_max, n));
+    const pct = ((clamped - display_min) / (display_max - display_min)) * 100;
+    ptr.style.left = pct + '%';
+    ptr.dataset.val = isNaN(n) ? raw : `$${n.toFixed(2)}`;
+    ptr.style.display = 'block';
+  } else {
+    ptr.style.display = 'none';
+  }
+
+  // BVA pills
+  document.querySelectorAll('.bv-pill').forEach(p => {
+    const bv = parseFloat(p.dataset.bv);
+    p.classList.toggle('hit', !isNaN(n) && Math.abs(n - bv) < 0.005);
+  });
+}
+
+function preset(val) {
+  document.getElementById('amount-in').value = val;
+  test();
+}
+
+function onInput() {
+  // live-clear highlights when typing
+  document.querySelectorAll('#ec-table tr[data-ec]').forEach(r => r.classList.remove('active'));
+  document.querySelectorAll('.bv-pill').forEach(p => p.classList.remove('hit'));
+  document.getElementById('nl-ptr').style.display = 'none';
+}
+
+// BVA pill click
+document.querySelectorAll('.bv-pill').forEach(p => {
+  p.style.cursor = 'pointer';
+  p.addEventListener('click', () => preset(p.dataset.bv));
+});
+</script>
+</body>
+</html>
