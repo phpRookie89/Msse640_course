@@ -1,7 +1,9 @@
 # Project 3: Performance Testing with JMeter
 
 **Course:** Software Testing  
-**Revised:** March 31, 2026  
+**Name:** Shawn Wilkinson
+
+**Professor:** Randall Granier
 
 ---
 
