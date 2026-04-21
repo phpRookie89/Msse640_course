@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/s_gua/**)",
+      "Bash(curl -s http://localhost:8080)",
+      "Bash(curl -s http://localhost:8080/product/OLJCESPC7Z)",
+      "Bash(curl -s http://localhost:8080/cart -X POST -d \"product_id=OLJCESPC7Z&quantity=1\" -L)",
+      "Bash(curl -s -c /tmp/cookies.txt -b /tmp/cookies.txt -X POST http://localhost:8080/cart -d \"product_id=OLJCESPC7Z&quantity=1\" -L)",
+      "Bash(curl -s http://localhost:8080/cart)",
+      "Bash(curl -s -c /tmp/c.txt -b /tmp/c.txt -X POST http://localhost:8080/cart -d 'product_id=OLJCESPC7Z&quantity=1' -D - -o /dev/null)",
+      "Bash(curl -s -c /tmp/c.txt -b /tmp/c.txt http://localhost:8080/cart)",
+      "Bash(curl -s -c /tmp/c.txt -b /tmp/c.txt -X POST http://localhost:8080/cart/empty -D - -o /dev/null)",
+      "Bash(docker compose up *)",
+      "Bash(netstat -ano)",
+      "Bash(gh auth *)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
