@@ -1,3 +1,9 @@
 target/
 .claude/
 *.class
+week7-writeup.md
+node_modules/
+package.json
+package-lock.json
+take-screenshots.js
+take-screenshots-week7.js

@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vending Machine — State / Control Flow / Data Flow Testing</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --panel: #1a1d27;
+    --border: #2e3250;
+    --accent: #4f8ef7;
+    --green: #3ecf8e;
+    --yellow: #f7c948;
+    --red: #f76f6f;
+    --purple: #a78bfa;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --active-state: #4f8ef7;
+    --inactive-state: #2e3250;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; }
+  h1 { text-align: center; padding: 18px 0 6px; font-size: 1.3rem; color: var(--accent); letter-spacing: 0.04em; }
+  .subtitle { text-align: center; color: var(--muted); font-size: 0.82rem; margin-bottom: 16px; }
+
+  .layout { display: grid; grid-template-columns: 320px 1fr 1fr; gap: 12px; padding: 0 16px 16px; }
+
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px; }
+  .panel h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 12px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+  /* ── Vending Machine UI ── */
+  .vm-display {
+    background: #0a0c12; border: 2px solid var(--border); border-radius: 8px;
+    padding: 10px 12px; margin-bottom: 12px; min-height: 48px;
+    font-family: 'Courier New', monospace; font-size: 0.88rem; color: var(--green);
+  }
+  .vm-display .line { margin: 2px 0; }
+  .vm-display .line.warn { color: var(--yellow); }
+  .vm-display .line.err  { color: var(--red); }
+
+  .items-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .item-btn {
+    background: #252840; border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 6px; cursor: pointer; text-align: center; transition: all 0.15s;
+    position: relative;
+  }
+  .item-btn:hover:not(:disabled) { border-color: var(--accent); background: #2d3260; }
+  .item-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .item-btn .item-name { font-weight: 600; font-size: 0.85rem; }
+  .item-btn .item-price { color: var(--yellow); font-size: 0.78rem; }
+  .item-btn .item-stock { color: var(--muted); font-size: 0.72rem; }
+  .item-btn.out-of-stock .item-name { color: var(--red); }
+
+  .coins-row { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+  .coin-btn {
+    flex: 1; min-width: 52px; background: #2a2020; border: 1px solid #5a3a1a;
+    border-radius: 6px; color: var(--yellow); font-weight: 700; font-size: 0.82rem;
+    padding: 7px 4px; cursor: pointer; transition: all 0.15s;
+  }
+  .coin-btn:hover { background: #3a2a10; border-color: var(--yellow); }
+
+  .action-row { display: flex; gap: 6px; }
+  .btn-cancel {
+    flex: 1; background: #2a1a1a; border: 1px solid #5a2020; border-radius: 6px;
+    color: var(--red); font-weight: 600; padding: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-cancel:hover { background: #3a1a1a; }
+  .btn-reset {
+    flex: 1; background: #1a2a1a; border: 1px solid #204a20; border-radius: 6px;
+    color: var(--green); font-weight: 600; padding: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .btn-reset:hover { background: #1a3a1a; }
+
+  .balance-bar {
+    text-align: center; margin-top: 10px; font-size: 0.82rem; color: var(--muted);
+  }
+  .balance-bar span { color: var(--green); font-size: 1.1rem; font-weight: 700; }
+
+  /* ── State Diagram ── */
+  .state-diagram { position: relative; }
+  .states-list { display: flex; flex-direction: column; gap: 8px; }
+  .state-node {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-radius: 8px; border: 2px solid var(--inactive-state);
+    background: #141620; transition: all 0.25s;
+  }
+  .state-node.active {
+    border-color: var(--active-state); background: #1a2040;
+    box-shadow: 0 0 12px rgba(79,142,247,0.25);
+  }
+  .state-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--inactive-state); flex-shrink: 0; transition: background 0.25s;
+  }
+  .state-node.active .state-dot { background: var(--active-state); }
+  .state-name { font-weight: 600; font-size: 0.85rem; flex: 1; }
+  .state-desc { font-size: 0.72rem; color: var(--muted); }
+
+  .transitions-section { margin-top: 14px; }
+  .transitions-section h3 { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+  .transition-row {
+    display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+    border-radius: 6px; font-size: 0.78rem; margin-bottom: 4px;
+    background: #141620; border: 1px solid var(--border);
+    transition: all 0.25s;
+  }
+  .transition-row.fired {
+    background: #1a2a10; border-color: var(--green); color: var(--green);
+  }
+  .transition-row.failed {
+    background: #2a1010; border-color: var(--red); color: var(--red);
+  }
+  .tr-from { color: var(--muted); }
+  .tr-arrow { color: var(--accent); font-weight: 700; }
+  .tr-to { color: var(--text); }
+  .tr-guard { font-style: italic; color: var(--purple); font-size: 0.72rem; }
+
+  /* ── Control Flow ── */
+  .cf-nodes { display: flex; flex-direction: column; gap: 6px; }
+  .cf-node {
+    padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border);
+    background: #141620; font-size: 0.8rem; transition: all 0.25s;
+    position: relative;
+  }
+  .cf-node.decision { border-left: 3px solid var(--yellow); }
+  .cf-node.action   { border-left: 3px solid var(--accent); }
+  .cf-node.terminal { border-left: 3px solid var(--green); }
+  .cf-node.error    { border-left: 3px solid var(--red); }
+
+  .cf-node.visited  { background: #1a1f2e; border-color: var(--accent); }
+  .cf-node.taken    { background: #1a2a10; border-color: var(--green); }
+  .cf-node.rejected { background: #2a1a10; border-color: var(--red); opacity: 0.7; }
+
+  .cf-label { font-weight: 600; }
+  .cf-outcome { font-size: 0.72rem; margin-top: 3px; color: var(--muted); }
+  .cf-outcome.yes { color: var(--green); }
+  .cf-outcome.no  { color: var(--red); }
+
+  .path-legend { display: flex; gap: 12px; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 0.72rem; color: var(--muted); }
+  .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+
+  /* ── Data Flow ── */
+  .df-vars { display: flex; flex-direction: column; gap: 10px; }
+  .df-var { background: #141620; border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; }
+  .df-var-name { font-weight: 700; color: var(--purple); font-size: 0.88rem; margin-bottom: 6px; font-family: 'Courier New', monospace; }
+  .df-value { font-size: 0.78rem; color: var(--muted); margin-bottom: 6px; }
+  .df-value span { color: var(--yellow); font-weight: 600; font-family: 'Courier New', monospace; }
+  .df-chain { display: flex; flex-direction: column; gap: 3px; }
+  .df-event {
+    font-size: 0.73rem; padding: 3px 8px; border-radius: 4px;
+    display: flex; align-items: center; gap: 6px;
+    border: 1px solid transparent; transition: all 0.2s;
+  }
+  .df-event.def   { background: #1a1a30; border-color: var(--purple); color: var(--purple); }
+  .df-event.use   { background: #0a2010; border-color: var(--green);  color: var(--green); }
+  .df-event.kill  { background: #2a1010; border-color: var(--red);    color: var(--red); }
+  .df-event .ev-tag { font-weight: 700; width: 28px; flex-shrink: 0; }
+  .df-event .ev-desc { flex: 1; }
+
+  /* ── Log ── */
+  .log-panel { grid-column: 1 / -1; margin-top: 4px; }
+  .log-inner { background: #0a0c12; border-radius: 6px; padding: 8px 12px; font-family: 'Courier New', monospace; font-size: 0.78rem; max-height: 90px; overflow-y: auto; }
+  .log-line { margin: 2px 0; }
+  .log-line.info   { color: var(--accent); }
+  .log-line.ok     { color: var(--green); }
+  .log-line.warn   { color: var(--yellow); }
+  .log-line.error  { color: var(--red); }
+  .log-line.system { color: var(--muted); }
+
+  /* scenario buttons */
+  .scenario-bar { display: flex; gap: 8px; justify-content: center; margin: 0 16px 12px; flex-wrap: wrap; }
+  .scenario-btn {
+    padding: 6px 14px; border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+    cursor: pointer; border: 1px solid; transition: all 0.15s;
+  }
+  .scenario-btn.sunny  { background: #102a10; border-color: var(--green); color: var(--green); }
+  .scenario-btn.sunny:hover  { background: #1a3a1a; }
+  .scenario-btn.rainy1 { background: #2a2010; border-color: var(--yellow); color: var(--yellow); }
+  .scenario-btn.rainy1:hover { background: #3a3010; }
+  .scenario-btn.rainy2 { background: #2a1010; border-color: var(--red); color: var(--red); }
+  .scenario-btn.rainy2:hover { background: #3a1010; }
+  .scenario-btn.rainy3 { background: #1a1030; border-color: var(--purple); color: var(--purple); }
+  .scenario-btn.rainy3:hover { background: #251540; }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr 1fr; }
+    .layout > :first-child { grid-column: 1 / -1; }
+  }
+  @media (max-width: 600px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Vending Machine Test Case Analyzer</h1>
+<p class="subtitle">State Transitions &nbsp;·&nbsp; Control Flow Testing &nbsp;·&nbsp; Data Flow Testing</p>
+
+<div class="scenario-bar">
+  <button class="scenario-btn sunny"  onclick="runScenario('sunny')">&#9654; Sunny Day — Full Purchase</button>
+  <button class="scenario-btn rainy1" onclick="runScenario('rainy1')">&#9654; Rainy Day 1 — Not Enough Money</button>
+  <button class="scenario-btn rainy2" onclick="runScenario('rainy2')">&#9654; Rainy Day 2 — Out of Stock</button>
+  <button class="scenario-btn rainy3" onclick="runScenario('rainy3')">&#9654; Rainy Day 3 — User Cancels</button>
+</div>
+
+<div class="layout">
+
+  <!-- ── LEFT: Vending Machine ── -->
+  <div class="panel" id="vm-panel">
+    <h2>Vending Machine</h2>
+    <div class="vm-display" id="vm-display">
+      <div class="line">Insert coins to begin...</div>
+    </div>
+
+    <div class="items-grid" id="items-grid"></div>
+
+    <div class="coins-row">
+      <button class="coin-btn" onclick="insertCoin(5)">5¢</button>
+      <button class="coin-btn" onclick="insertCoin(10)">10¢</button>
+      <button class="coin-btn" onclick="insertCoin(25)">25¢</button>
+      <button class="coin-btn" onclick="insertCoin(100)">$1</button>
+    </div>
+    <div class="action-row">
+      <button class="btn-cancel" onclick="cancelTransaction()">&#8634; Return Coins</button>
+      <button class="btn-reset"  onclick="resetMachine()">&#9654; Reset</button>
+    </div>
+    <div class="balance-bar">Balance: <span id="balance-display">$0.00</span></div>
+  </div>
+
+  <!-- ── MIDDLE: State + Control Flow ── -->
+  <div style="display:flex;flex-direction:column;gap:12px;">
+
+    <div class="panel">
+      <h2>State Diagram</h2>
+      <div class="states-list" id="states-list"></div>
+      <div class="transitions-section">
+        <h3>Last Transition</h3>
+        <div id="transitions-log"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Control Flow Graph</h2>
+      <div class="cf-nodes" id="cf-nodes"></div>
+      <div class="path-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Visited</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Taken (YES)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Not taken (NO)</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT: Data Flow ── -->
+  <div class="panel">
+    <h2>Data Flow (Def-Use Chains)</h2>
+    <div class="df-vars" id="df-vars"></div>
+  </div>
+
+  <!-- ── BOTTOM: Event Log ── -->
+  <div class="panel log-panel">
+    <h2>Event Log</h2>
+    <div class="log-inner" id="log-inner"></div>
+  </div>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════════════════════
+const ITEMS = [
+  { id: 'cola',   name: 'Cola',    price: 75,  stock: 2, emoji: '🥤' },
+  { id: 'chips',  name: 'Chips',   price: 50,  stock: 0, emoji: '🍟' },
+  { id: 'water',  name: 'Water',   price: 35,  stock: 3, emoji: '💧' },
+  { id: 'candy',  name: 'Candy',   price: 60,  stock: 1, emoji: '🍬' },
+];
+
+// ═══════════════════════════════════════════════════════════
+//  STATE MACHINE
+// ═══════════════════════════════════════════════════════════
+const STATES = {
+  IDLE:        { label: 'Idle',             desc: 'Waiting for coins' },
+  HAS_MONEY:   { label: 'Has Money',        desc: 'Coins inserted, select item' },
+  CHECKING:    { label: 'Checking',         desc: 'Validating money & stock' },
+  DISPENSING:  { label: 'Dispensing',       desc: 'Item being dispensed' },
+  RETURNING:   { label: 'Returning Change', desc: 'Giving back excess coins' },
+};
+
+let machine = {};
+initMachine();
+
+function initMachine() {
+  machine = {
+    state: 'IDLE',
+    balance: 0,
+    selectedItem: null,
+    items: ITEMS.map(i => ({ ...i })),
+  };
+}
+
+// ═══════════════════════════════════════════════════════════
+//  DATA FLOW TRACKING
+// ═══════════════════════════════════════════════════════════
+const VARS = {
+  balance:   { value: null, events: [] },
+  itemPrice: { value: null, events: [] },
+  change:    { value: null, events: [] },
+};
+
+function dfDef(varName, value, desc) {
+  VARS[varName].value = value;
+  VARS[varName].events.push({ type: 'def', desc: `DEF: ${desc} = ${fmtVal(varName, value)}` });
+  renderDF();
+}
+function dfUse(varName, desc) {
+  VARS[varName].events.push({ type: 'use', desc: `USE: ${desc}` });
+  renderDF();
+}
+function dfKill(varName, desc) {
+  VARS[varName].events.push({ type: 'kill', desc: `KILL: ${desc}` });
+  VARS[varName].value = null;
+  renderDF();
+}
+function fmtVal(varName, v) {
+  if (v === null) return 'null';
+  if (varName === 'balance' || varName === 'itemPrice' || varName === 'change') return '$' + (v/100).toFixed(2);
+  return String(v);
+}
+function resetDF() {
+  Object.keys(VARS).forEach(k => { VARS[k] = { value: null, events: [] }; });
+  renderDF();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  CONTROL FLOW GRAPH NODES
+// ═══════════════════════════════════════════════════════════
+const CF_NODES = [
+  { id: 'start',     type: 'terminal',  label: 'START: Machine idle',             outcome: '' },
+  { id: 'insertCoin',type: 'action',    label: 'Action: insertCoin(amount)',       outcome: '' },
+  { id: 'd_balance', type: 'decision',  label: 'Decision: balance > 0?',          outcome: '' },
+  { id: 'selectItem',type: 'action',    label: 'Action: selectItem(id)',           outcome: '' },
+  { id: 'd_price',   type: 'decision',  label: 'Decision: balance >= price?',     outcome: '' },
+  { id: 'd_stock',   type: 'decision',  label: 'Decision: stock > 0?',            outcome: '' },
+  { id: 'dispense',  type: 'action',    label: 'Action: dispenseItem()',           outcome: '' },
+  { id: 'calcChange',type: 'action',    label: 'Action: calculateChange()',        outcome: '' },
+  { id: 'd_change',  type: 'decision',  label: 'Decision: change > 0?',           outcome: '' },
+  { id: 'returnChg', type: 'action',    label: 'Action: returnChange()',           outcome: '' },
+  { id: 'end_ok',    type: 'terminal',  label: 'END: Transaction complete ✓',     outcome: '' },
+  { id: 'end_money', type: 'error',     label: 'END: Insufficient funds ✗',       outcome: '' },
+  { id: 'end_stock', type: 'error',     label: 'END: Out of stock ✗',             outcome: '' },
+  { id: 'end_cancel',type: 'error',     label: 'END: User cancelled ✗',           outcome: '' },
+];
+
+let cfState = {}; // id -> 'visited' | 'taken' | 'rejected' | ''
+
+function cfVisit(id, outcome) {
+  cfState[id] = outcome || 'visited';
+  if (outcome) CF_NODES.find(n => n.id === id).outcome = outcome;
+  renderCF();
+}
+function resetCF() {
+  cfState = {};
+  CF_NODES.forEach(n => n.outcome = '');
+  renderCF();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  TRANSITIONS LOG
+// ═══════════════════════════════════════════════════════════
+let lastTransitions = [];
+
+function recordTransition(from, to, guard, result) {
+  lastTransitions = [{ from, to, guard, result }];
+  renderTransitions();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LOG
+// ═══════════════════════════════════════════════════════════
+let logLines = [];
+
+function log(msg, type = 'info') {
+  const ts = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  logLines.push({ msg: `[${ts}] ${msg}`, type });
+  if (logLines.length > 80) logLines.shift();
+  renderLog();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ACTIONS
+// ═══════════════════════════════════════════════════════════
+function insertCoin(cents) {
+  if (!['IDLE', 'HAS_MONEY'].includes(machine.state)) {
+    setDisplay([{ text: 'Transaction in progress...', cls: 'warn' }]);
+    return;
+  }
+  const prev = machine.balance;
+  machine.balance += cents;
+
+  dfDef('balance', machine.balance, `insertCoin(${cents}¢)`);
+  cfVisit('insertCoin', 'visited');
+  cfVisit('d_balance', 'taken');
+
+  log(`Coin inserted: ${fmtCents(cents)}. Balance: ${fmtCents(machine.balance)}`, 'ok');
+  recordTransition(machine.state, 'HAS_MONEY', 'coin inserted', 'fired');
+  transitionTo('HAS_MONEY');
+  setDisplay([
+    { text: `Coin accepted: ${fmtCents(cents)}`, cls: '' },
+    { text: `Balance: ${fmtCents(machine.balance)}`, cls: '' },
+    { text: 'Select an item.', cls: '' },
+  ]);
+}
+
+function selectItem(id) {
+  if (machine.state !== 'HAS_MONEY') {
+    setDisplay([{ text: 'Insert coins first.', cls: 'warn' }]);
+    return;
+  }
+  const item = machine.items.find(i => i.id === id);
+  machine.selectedItem = item;
+
+  dfDef('itemPrice', item.price, `selectItem(${item.name})`);
+  dfUse('balance', `compare balance(${fmtCents(machine.balance)}) >= price(${fmtCents(item.price)})`);
+  cfVisit('selectItem', 'visited');
+  cfVisit('d_price');
+
+  log(`Item selected: ${item.name} @ ${fmtCents(item.price)}`, 'info');
+  recordTransition('HAS_MONEY', 'CHECKING', 'item selected', 'fired');
+  transitionTo('CHECKING');
+
+  // Decision: enough money?
+  if (machine.balance < item.price) {
+    cfVisit('d_price', 'rejected');
+    cfVisit('end_money', 'taken');
+    log(`Insufficient funds. Need ${fmtCents(item.price - machine.balance)} more.`, 'warn');
+    recordTransition('CHECKING', 'HAS_MONEY', 'balance < price', 'fired');
+    transitionTo('HAS_MONEY');
+    setDisplay([
+      { text: `${item.name}: ${fmtCents(item.price)}`, cls: 'warn' },
+      { text: `Need ${fmtCents(item.price - machine.balance)} more.`, cls: 'warn' },
+    ]);
+    return;
+  }
+  cfVisit('d_price', 'taken');
+
+  // Decision: in stock?
+  dfUse('itemPrice', `check stock for ${item.name}`);
+  cfVisit('d_stock');
+  if (item.stock === 0) {
+    cfVisit('d_stock', 'rejected');
+    cfVisit('end_stock', 'taken');
+    log(`${item.name} is out of stock.`, 'error');
+    recordTransition('CHECKING', 'HAS_MONEY', 'stock = 0', 'fired');
+    transitionTo('HAS_MONEY');
+    setDisplay([
+      { text: `${item.name}: OUT OF STOCK`, cls: 'err' },
+      { text: 'Please choose another item.', cls: '' },
+    ]);
+    return;
+  }
+  cfVisit('d_stock', 'taken');
+
+  // Dispense
+  cfVisit('dispense', 'taken');
+  item.stock--;
+  log(`Dispensing ${item.name}...`, 'ok');
+  recordTransition('CHECKING', 'DISPENSING', 'balance >= price AND stock > 0', 'fired');
+  transitionTo('DISPENSING');
+
+  // Calculate change
+  const change = machine.balance - item.price;
+  dfKill('balance', `consumed by purchase`);
+  dfDef('change', change, `balance(${fmtCents(machine.balance)}) - price(${fmtCents(item.price)})`);
+  cfVisit('calcChange', 'taken');
+  cfVisit('d_change');
+
+  machine.balance = 0;
+
+  if (change > 0) {
+    dfUse('change', `returning ${fmtCents(change)} to user`);
+    cfVisit('d_change', 'taken');
+    cfVisit('returnChg', 'taken');
+    log(`Returning change: ${fmtCents(change)}`, 'ok');
+    recordTransition('DISPENSING', 'RETURNING', 'change > 0', 'fired');
+    transitionTo('RETURNING');
+    setDisplay([
+      { text: `${item.emoji}  ${item.name} dispensed!`, cls: '' },
+      { text: `Change returned: ${fmtCents(change)}`, cls: '' },
+    ]);
+  } else {
+    dfKill('change', `no change needed`);
+    cfVisit('d_change', 'rejected');
+    setDisplay([
+      { text: `${item.emoji}  ${item.name} dispensed!`, cls: '' },
+      { text: 'Exact change. Enjoy!', cls: '' },
+    ]);
+  }
+
+  cfVisit('end_ok', 'taken');
+  setTimeout(() => {
+    recordTransition(machine.state, 'IDLE', 'transaction complete', 'fired');
+    transitionTo('IDLE');
+    setDisplay([{ text: 'Thank you! Insert coins for next purchase.', cls: '' }]);
+    log('Transaction complete.', 'system');
+  }, 1800);
+
+  renderItems();
+}
+
+function cancelTransaction() {
+  if (machine.state === 'IDLE') return;
+  const refund = machine.balance;
+  log(`Transaction cancelled. Returning ${fmtCents(refund)}.`, 'warn');
+  if (refund > 0) {
+    dfKill('balance', 'cancelled by user');
+  }
+  cfVisit('end_cancel', 'taken');
+  recordTransition(machine.state, 'IDLE', 'user cancelled', 'fired');
+  machine.balance = 0;
+  machine.selectedItem = null;
+  transitionTo('IDLE');
+  setDisplay([{ text: `Returned: ${fmtCents(refund)}. Have a nice day!`, cls: 'warn' }]);
+}
+
+function resetMachine() {
+  initMachine();
+  resetDF();
+  resetCF();
+  lastTransitions = [];
+  logLines = [];
+  log('Machine reset.', 'system');
+  renderAll();
+  setDisplay([{ text: 'Insert coins to begin...', cls: '' }]);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════════════════════
+function transitionTo(newState) {
+  machine.state = newState;
+  renderStates();
+  renderBalance();
+}
+
+function fmtCents(c) {
+  return '$' + (c / 100).toFixed(2);
+}
+
+function setDisplay(lines) {
+  const el = document.getElementById('vm-display');
+  el.innerHTML = lines.map(l => `<div class="line ${l.cls||''}">${l.text}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════
+function renderAll() {
+  renderStates();
+  renderItems();
+  renderCF();
+  renderDF();
+  renderTransitions();
+  renderLog();
+  renderBalance();
+}
+
+function renderStates() {
+  const el = document.getElementById('states-list');
+  el.innerHTML = Object.entries(STATES).map(([id, s]) => `
+    <div class="state-node ${machine.state === id ? 'active' : ''}">
+      <div class="state-dot"></div>
+      <div>
+        <div class="state-name">${s.label}</div>
+        <div class="state-desc">${s.desc}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderItems() {
+  const el = document.getElementById('items-grid');
+  el.innerHTML = machine.items.map(item => `
+    <button class="item-btn ${item.stock === 0 ? 'out-of-stock' : ''}"
+            onclick="selectItem('${item.id}')"
+            ${machine.state !== 'HAS_MONEY' ? 'disabled' : ''}>
+      <div class="item-name">${item.emoji} ${item.name}</div>
+      <div class="item-price">${fmtCents(item.price)}</div>
+      <div class="item-stock">${item.stock === 0 ? 'OUT OF STOCK' : `Stock: ${item.stock}`}</div>
+    </button>
+  `).join('');
+}
+
+function renderBalance() {
+  document.getElementById('balance-display').textContent = fmtCents(machine.balance);
+}
+
+function renderCF() {
+  const el = document.getElementById('cf-nodes');
+  el.innerHTML = CF_NODES.map(n => {
+    const cls = cfState[n.id] || '';
+    const outcomeHtml = n.outcome
+      ? `<div class="cf-outcome ${n.outcome === 'taken' ? 'yes' : n.outcome === 'rejected' ? 'no' : ''}">${
+          n.outcome === 'taken' ? '→ YES / Taken' : n.outcome === 'rejected' ? '→ NO / Not taken' : '→ Visited'
+        }</div>`
+      : '';
+    return `<div class="cf-node ${n.type} ${cls}"><div class="cf-label">${n.label}</div>${outcomeHtml}</div>`;
+  }).join('');
+}
+
+function renderDF() {
+  const el = document.getElementById('df-vars');
+  el.innerHTML = Object.entries(VARS).map(([name, v]) => `
+    <div class="df-var">
+      <div class="df-var-name">${name}</div>
+      <div class="df-value">Current value: <span>${v.value !== null ? fmtVal(name, v.value) : 'undefined'}</span></div>
+      <div class="df-chain">
+        ${v.events.slice(-6).map(e => `
+          <div class="df-event ${e.type}">
+            <span class="ev-tag">${e.type.toUpperCase()}</span>
+            <span class="ev-desc">${e.desc.replace(/^(DEF|USE|KILL): /, '')}</span>
+          </div>
+        `).join('')}
+        ${v.events.length === 0 ? '<div style="color:var(--muted);font-size:0.72rem">No activity yet</div>' : ''}
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderTransitions() {
+  const el = document.getElementById('transitions-log');
+  if (lastTransitions.length === 0) { el.innerHTML = '<div style="color:var(--muted);font-size:0.78rem">None yet</div>'; return; }
+  el.innerHTML = lastTransitions.map(t => `
+    <div class="transition-row ${t.result === 'fired' ? 'fired' : 'failed'}">
+      <span class="tr-from">${t.from}</span>
+      <span class="tr-arrow">→</span>
+      <span class="tr-to">${t.to}</span>
+      <span class="tr-guard">[${t.guard}]</span>
+    </div>
+  `).join('');
+}
+
+function renderLog() {
+  const el = document.getElementById('log-inner');
+  el.innerHTML = logLines.map(l => `<div class="log-line ${l.type}">${l.msg}</div>`).join('');
+  el.scrollTop = el.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  GUIDED SCENARIOS (auto-play with delays)
+// ═══════════════════════════════════════════════════════════
+let scenarioTimer = null;
+
+function runScenario(name) {
+  clearTimeout(scenarioTimer);
+  resetMachine();
+
+  const steps = {
+    sunny: [
+      [300,  () => insertCoin(25)],
+      [800,  () => insertCoin(25)],
+      [1300, () => insertCoin(25)],
+      [1800, () => insertCoin(25)],  // $1.00 balance
+      [2400, () => selectItem('cola')], // $0.75 → change $0.25
+    ],
+    rainy1: [
+      [300,  () => insertCoin(25)],
+      [800,  () => insertCoin(10)],
+      [1400, () => selectItem('cola')], // only $0.35, need $0.75
+    ],
+    rainy2: [
+      [300,  () => insertCoin(25)],
+      [800,  () => insertCoin(25)],
+      [1400, () => selectItem('chips')], // chips: stock = 0
+    ],
+    rainy3: [
+      [300,  () => insertCoin(100)],
+      [800,  () => insertCoin(25)],
+      [1500, () => cancelTransaction()],
+    ],
+  };
+
+  (steps[name] || []).forEach(([delay, fn]) => {
+    scenarioTimer = setTimeout(fn, delay);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+renderAll();
+log('Machine initialized. Ready for input.', 'system');
+</script>
+</body>
+</html>

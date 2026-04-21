@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Boundary Value Analysis — Traffic Light Timer</title>
+<style>
+  :root {
+    --bg: #0f1117; --panel: #1a1d27; --border: #2e3250;
+    --text: #e2e8f0; --muted: #64748b;
+    --below:  #f76f6f;
+    --at-min: #f7a94f;
+    --nominal:#3ecf8e;
+    --at-max: #4f8ef7;
+    --above:  #a78bfa;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; padding: 20px; }
+
+  h1 { text-align: center; font-size: 1.25rem; color: #4f8ef7; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: var(--muted); font-size: 0.8rem; margin-bottom: 20px; }
+
+  .layout { display: grid; grid-template-columns: 200px 1fr 1fr; gap: 14px; max-width: 1020px; margin: 0 auto; }
+  .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .panel h2 { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 14px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+
+  /* ── Traffic Light ── */
+  .light-housing {
+    width: 100px; margin: 0 auto 12px;
+    background: #1a1a1a; border: 3px solid #333;
+    border-radius: 16px; padding: 14px 20px;
+    display: flex; flex-direction: column; gap: 10px; align-items: center;
+  }
+  .bulb {
+    width: 50px; height: 50px; border-radius: 50%;
+    background: #1a1a1a; border: 2px solid #333;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .bulb.red-on    { background: #ff2222; box-shadow: 0 0 20px #ff4444, 0 0 40px #ff000060; }
+  .bulb.yellow-on { background: #ffcc00; box-shadow: 0 0 20px #ffee44, 0 0 40px #ffcc0060; }
+  .bulb.green-on  { background: #00dd44; box-shadow: 0 0 20px #44ff66, 0 0 40px #00cc4460; }
+
+  .phase-label { text-align: center; font-weight: 700; font-size: 0.9rem; min-height: 22px; }
+  .phase-timer { text-align: center; font-family: 'Courier New', monospace; font-size: 1.5rem; color: #4f8ef7; min-height: 36px; }
+  .ctrl-row { display: flex; gap: 8px; justify-content: center; margin-top: 8px; }
+  .ctrl-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 0.78rem; font-weight: 600;
+    cursor: pointer; border: 1px solid; transition: all 0.15s;
+  }
+  .btn-run  { background:#102a10;border-color:#3ecf8e;color:#3ecf8e; }
+  .btn-stop { background:#2a1010;border-color:#f76f6f;color:#f76f6f; }
+  .btn-run:hover  { background:#1a3a1a; }
+  .btn-stop:hover { background:#3a1a1a; }
+
+  /* ── Phase inputs ── */
+  .phase-inputs { display: flex; flex-direction: column; gap: 12px; }
+  .phase-row { border-radius: 8px; padding: 12px; border: 2px solid var(--border); background: #141620; transition: border-color 0.25s; }
+  .phase-row.active { border-color: #4f8ef7; background: #151a30; }
+  .phase-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .phase-dot { width: 14px; height: 14px; border-radius: 50%; }
+  .phase-name { font-weight: 700; font-size: 0.88rem; }
+  .phase-range { font-size: 0.72rem; color: var(--muted); margin-left: auto; }
+
+  .input-row { display: flex; gap: 6px; align-items: center; }
+  .sec-input {
+    flex: 1; background: #0a0c12; border: 2px solid var(--border); border-radius: 6px;
+    color: var(--text); font-size: 1rem; font-family: 'Courier New', monospace;
+    padding: 7px 10px; outline: none; transition: border-color 0.2s;
+  }
+  .sec-input:focus { border-color: #4f8ef7; }
+  .sec-label { color: var(--muted); font-size: 0.8rem; }
+
+  .bva-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 0.72rem; font-weight: 700; margin-top: 6px;
+    border: 1px solid transparent;
+  }
+
+  /* ── BVA Scale ── */
+  .scale-wrap { margin-bottom: 16px; }
+  .scale-title { font-size: 0.78rem; color: var(--muted); margin-bottom: 8px; font-weight: 600; }
+  .scale-track { position: relative; height: 20px; border-radius: 10px; overflow: hidden; display: flex; }
+  .scale-seg { height: 100%; transition: opacity 0.3s; }
+  .scale-markers { display: flex; justify-content: space-between; margin-top: 4px; font-size: 0.65rem; color: var(--muted); }
+  .scale-ptr {
+    position: absolute; top: -4px; width: 3px; height: 28px;
+    background: white; border-radius: 2px; transform: translateX(-50%);
+    transition: left 0.3s; display: none; pointer-events: none;
+  }
+  .scale-ptr::after {
+    content: attr(data-val);
+    position: absolute; top: -18px; left: 50%; transform: translateX(-50%);
+    background: white; color: #0f1117; font-size: 0.65rem; font-weight: 700;
+    padding: 1px 5px; border-radius: 4px; white-space: nowrap;
+  }
+
+  /* ── BVA Table ── */
+  .bva-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+  .bva-table th { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; padding: 5px 8px; text-align: left; border-bottom: 1px solid var(--border); }
+  .bva-table td { padding: 6px 8px; border-bottom: 1px solid #1e2235; }
+  .bva-table tr.hit td { background: #1e2240; font-weight: 600; }
+
+  .scenario-bar { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+  .sc-btn { padding: 5px 12px; border-radius: 16px; font-size: 0.74rem; font-weight: 600; cursor: pointer; border: 1px solid; transition: all 0.15s; }
+
+  @media (max-width: 760px) {
+    .layout { grid-template-columns: 1fr 1fr; }
+    .layout > :first-child { grid-column: 1 / -1; display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+  }
+  @media (max-width: 520px) { .layout { grid-template-columns: 1fr; } .layout > :first-child { display: block; } }
+</style>
+</head>
+<body>
+
+<h1>Boundary Value Analysis — Traffic Light Timer</h1>
+<p class="subtitle">Test timer durations at and around the valid boundaries for each phase · Red: 15–60s · Green: 10–45s · Yellow: 3–8s</p>
+
+<div class="layout">
+
+  <!-- ── Traffic Light Visual ── -->
+  <div class="panel" style="display:flex;flex-direction:column;align-items:center;">
+    <h2 style="width:100%">Live Simulation</h2>
+    <div class="light-housing">
+      <div class="bulb" id="bulb-red"></div>
+      <div class="bulb" id="bulb-yellow"></div>
+      <div class="bulb" id="bulb-green"></div>
+    </div>
+    <div class="phase-label" id="phase-label">—</div>
+    <div class="phase-timer" id="phase-timer">—</div>
+    <div class="ctrl-row">
+      <button class="ctrl-btn btn-run"  onclick="startLight()">&#9654; Run</button>
+      <button class="ctrl-btn btn-stop" onclick="stopLight()">&#9632; Stop</button>
+    </div>
+    <p style="font-size:0.7rem;color:var(--muted);margin-top:10px;text-align:center">All three phases must have valid values to run the simulation.</p>
+  </div>
+
+  <!-- ── Phase Inputs + Scales ── -->
+  <div class="panel">
+    <h2>Phase Timer Inputs</h2>
+    <div class="scenario-bar">
+      <button class="sc-btn" style="background:#102a10;border-color:#3ecf8e;color:#3ecf8e"   onclick="setScenario('sunny')">&#9654; All Valid</button>
+      <button class="sc-btn" style="background:#2a1010;border-color:#f76f6f;color:#f76f6f"   onclick="setScenario('below')">Below Min</button>
+      <button class="sc-btn" style="background:#2a2010;border-color:#f7c948;color:#f7c948"   onclick="setScenario('atmin')">At Min</button>
+      <button class="sc-btn" style="background:#1a1030;border-color:#a78bfa;color:#a78bfa"   onclick="setScenario('atmax')">At Max</button>
+      <button class="sc-btn" style="background:#1a0a2a;border-color:#f76f6f;color:#f76f6f"   onclick="setScenario('above')">Above Max</button>
+    </div>
+
+    <div class="phase-inputs" id="phase-inputs">
+
+      <div class="phase-row" id="row-red">
+        <div class="phase-header">
+          <div class="phase-dot" style="background:#ff2222"></div>
+          <span class="phase-name">Red Light</span>
+          <span class="phase-range">Valid: 15 – 60 sec</span>
+        </div>
+        <div class="scale-wrap">
+          <div class="scale-title">Boundary Scale</div>
+          <div class="scale-track" id="scale-red">
+            <div class="scale-seg" style="width:20%;background:#f76f6f" title="< 15 (below min)"></div>
+            <div class="scale-seg" style="width:3%;background:#f7a94f"  title="= 15 (at min)"></div>
+            <div class="scale-seg" style="width:54%;background:#3ecf8e" title="16–59 (nominal)"></div>
+            <div class="scale-seg" style="width:3%;background:#4f8ef7"  title="= 60 (at max)"></div>
+            <div class="scale-seg" style="width:20%;background:#a78bfa" title="> 60 (above max)"></div>
+          </div>
+          <div class="scale-markers"><span>0s</span><span>15s</span><span>&nbsp;&nbsp;&nbsp;nominal&nbsp;&nbsp;&nbsp;</span><span>60s</span><span>80s</span></div>
+          <div class="scale-ptr" id="ptr-red" data-val=""></div>
+        </div>
+        <div class="input-row">
+          <input class="sec-input" id="in-red" type="number" value="30" min="0" max="120" oninput="onPhaseInput('red')">
+          <span class="sec-label">seconds</span>
+        </div>
+        <div id="badge-red"></div>
+      </div>
+
+      <div class="phase-row" id="row-green">
+        <div class="phase-header">
+          <div class="phase-dot" style="background:#00dd44"></div>
+          <span class="phase-name">Green Light</span>
+          <span class="phase-range">Valid: 10 – 45 sec</span>
+        </div>
+        <div class="scale-wrap">
+          <div class="scale-title">Boundary Scale</div>
+          <div class="scale-track" id="scale-green">
+            <div class="scale-seg" style="width:18%;background:#f76f6f"></div>
+            <div class="scale-seg" style="width:3%;background:#f7a94f"></div>
+            <div class="scale-seg" style="width:57%;background:#3ecf8e"></div>
+            <div class="scale-seg" style="width:3%;background:#4f8ef7"></div>
+            <div class="scale-seg" style="width:19%;background:#a78bfa"></div>
+          </div>
+          <div class="scale-markers"><span>0s</span><span>10s</span><span>&nbsp;&nbsp;&nbsp;nominal&nbsp;&nbsp;&nbsp;</span><span>45s</span><span>60s</span></div>
+          <div class="scale-ptr" id="ptr-green" data-val=""></div>
+        </div>
+        <div class="input-row">
+          <input class="sec-input" id="in-green" type="number" value="25" min="0" max="80" oninput="onPhaseInput('green')">
+          <span class="sec-label">seconds</span>
+        </div>
+        <div id="badge-green"></div>
+      </div>
+
+      <div class="phase-row" id="row-yellow">
+        <div class="phase-header">
+          <div class="phase-dot" style="background:#ffcc00"></div>
+          <span class="phase-name">Yellow Light</span>
+          <span class="phase-range">Valid: 3 – 8 sec</span>
+        </div>
+        <div class="scale-wrap">
+          <div class="scale-title">Boundary Scale</div>
+          <div class="scale-track" id="scale-yellow">
+            <div class="scale-seg" style="width:20%;background:#f76f6f"></div>
+            <div class="scale-seg" style="width:5%;background:#f7a94f"></div>
+            <div class="scale-seg" style="width:50%;background:#3ecf8e"></div>
+            <div class="scale-seg" style="width:5%;background:#4f8ef7"></div>
+            <div class="scale-seg" style="width:20%;background:#a78bfa"></div>
+          </div>
+          <div class="scale-markers"><span>0s</span><span>3s</span><span>&nbsp;&nbsp;&nbsp;nominal&nbsp;&nbsp;&nbsp;</span><span>8s</span><span>12s</span></div>
+          <div class="scale-ptr" id="ptr-yellow" data-val=""></div>
+        </div>
+        <div class="input-row">
+          <input class="sec-input" id="in-yellow" type="number" value="5" min="0" max="20" oninput="onPhaseInput('yellow')">
+          <span class="sec-label">seconds</span>
+        </div>
+        <div id="badge-yellow"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ── BVA Reference Table ── -->
+  <div class="panel">
+    <h2>BVA Category Reference</h2>
+
+    <table class="bva-table" id="bva-table">
+      <thead><tr><th>Category</th><th>Description</th><th>Example (Red)</th><th>Valid?</th></tr></thead>
+      <tbody>
+        <tr data-cat="below">
+          <td><span class="bva-badge" style="background:#f76f6f20;color:#f76f6f;border-color:#f76f6f">Below Min</span></td>
+          <td>Value is less than the minimum boundary</td><td style="font-family:monospace">14s</td><td style="color:#f76f6f">✗ Invalid</td>
+        </tr>
+        <tr data-cat="atmin">
+          <td><span class="bva-badge" style="background:#f7a94f20;color:#f7a94f;border-color:#f7a94f">At Min</span></td>
+          <td>Value equals the minimum boundary exactly</td><td style="font-family:monospace">15s</td><td style="color:#3ecf8e">✓ Valid</td>
+        </tr>
+        <tr data-cat="just-above-min">
+          <td><span class="bva-badge" style="background:#3ecf8e20;color:#3ecf8e;border-color:#3ecf8e">Just Above Min</span></td>
+          <td>One unit above the minimum boundary</td><td style="font-family:monospace">16s</td><td style="color:#3ecf8e">✓ Valid</td>
+        </tr>
+        <tr data-cat="nominal">
+          <td><span class="bva-badge" style="background:#3ecf8e20;color:#3ecf8e;border-color:#3ecf8e">Nominal</span></td>
+          <td>Middle of the valid range</td><td style="font-family:monospace">37s</td><td style="color:#3ecf8e">✓ Valid</td>
+        </tr>
+        <tr data-cat="just-below-max">
+          <td><span class="bva-badge" style="background:#4f8ef720;color:#4f8ef7;border-color:#4f8ef7">Just Below Max</span></td>
+          <td>One unit below the maximum boundary</td><td style="font-family:monospace">59s</td><td style="color:#3ecf8e">✓ Valid</td>
+        </tr>
+        <tr data-cat="atmax">
+          <td><span class="bva-badge" style="background:#4f8ef720;color:#4f8ef7;border-color:#4f8ef7">At Max</span></td>
+          <td>Value equals the maximum boundary exactly</td><td style="font-family:monospace">60s</td><td style="color:#3ecf8e">✓ Valid</td>
+        </tr>
+        <tr data-cat="above">
+          <td><span class="bva-badge" style="background:#a78bfa20;color:#a78bfa;border-color:#a78bfa">Above Max</span></td>
+          <td>Value exceeds the maximum boundary</td><td style="font-family:monospace">61s</td><td style="color:#f76f6f">✗ Invalid</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="margin-top:18px;background:#141620;border-radius:8px;padding:12px;border:1px solid var(--border)">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Why BVA Catches More Bugs</div>
+      <p style="font-size:0.78rem;color:#94a3b8;line-height:1.6">
+        Most defects cluster at partition boundaries — off-by-one errors, wrong comparisons (<code style="background:#0a0c12;padding:1px 5px;border-radius:3px">&lt;</code> vs <code style="background:#0a0c12;padding:1px 5px;border-radius:3px">&lt;=</code>).
+        BVA tests the 7 points above for each input rather than one value per equivalence class,
+        giving much higher fault-detection with minimal extra test cases.
+      </p>
+    </div>
+
+    <div style="margin-top:14px">
+      <div style="font-size:0.72rem;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:0.08em;margin-bottom:8px">Current Status</div>
+      <div id="overall-status" style="font-size:0.88rem;padding:10px 12px;border-radius:8px;background:#141620;border:1px solid var(--border)">
+        Enter values above to see validation status.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const PHASES = {
+  red:    { min: 15, max: 60,  label: 'Red',    bulbId: 'bulb-red',    color: '#ff2222', cls: 'red-on' },
+  green:  { min: 10, max: 45,  label: 'Green',  bulbId: 'bulb-green',  color: '#00dd44', cls: 'green-on' },
+  yellow: { min: 3,  max: 8,   label: 'Yellow', bulbId: 'bulb-yellow', color: '#ffcc00', cls: 'yellow-on' },
+};
+
+// Map scale display ranges
+const SCALE_RANGE = {
+  red:    { display_min: 0, display_max: 80 },
+  green:  { display_min: 0, display_max: 60 },
+  yellow: { display_min: 0, display_max: 14 },
+};
+
+function categorize(val, min, max) {
+  if (val < min - 1) return 'below';
+  if (val === min - 1) return 'just-below-min'; // not in table but handled
+  if (val === min)     return 'atmin';
+  if (val === min + 1) return 'just-above-min';
+  if (val > min + 1 && val < max - 1) return 'nominal';
+  if (val === max - 1) return 'just-below-max';
+  if (val === max)     return 'atmax';
+  return 'above';
+}
+
+function isValid(val, min, max) { return val >= min && val <= max; }
+
+const BADGE_STYLES = {
+  'below':          { color: '#f76f6f', label: '✗ Below Min — Invalid' },
+  'just-below-min': { color: '#f7a94f', label: '→ Just Below Min — Invalid' },
+  'atmin':          { color: '#f7a94f', label: '→ At Min Boundary — Valid' },
+  'just-above-min': { color: '#3ecf8e', label: '→ Just Above Min — Valid' },
+  'nominal':        { color: '#3ecf8e', label: '✓ Nominal Range — Valid' },
+  'just-below-max': { color: '#4f8ef7', label: '→ Just Below Max — Valid' },
+  'atmax':          { color: '#4f8ef7', label: '→ At Max Boundary — Valid' },
+  'above':          { color: '#a78bfa', label: '✗ Above Max — Invalid' },
+};
+
+function onPhaseInput(phase) {
+  const cfg = PHASES[phase];
+  const val = parseInt(document.getElementById('in-' + phase).value, 10);
+  const badgeEl = document.getElementById('badge-' + phase);
+  const ptrEl   = document.getElementById('ptr-' + phase);
+  const sr      = SCALE_RANGE[phase];
+
+  if (isNaN(val)) {
+    badgeEl.innerHTML = '';
+    ptrEl.style.display = 'none';
+    updateOverallStatus();
+    return;
+  }
+
+  const cat = categorize(val, cfg.min, cfg.max);
+  const bs  = BADGE_STYLES[cat] || BADGE_STYLES['above'];
+
+  badgeEl.innerHTML = `<span class="bva-badge" style="background:${bs.color}20;color:${bs.color};border:1px solid ${bs.color}">${bs.label}</span>`;
+
+  // Pointer on scale
+  const pct = Math.max(0, Math.min(100, ((val - sr.display_min) / (sr.display_max - sr.display_min)) * 100));
+  ptrEl.style.left    = pct + '%';
+  ptrEl.dataset.val   = val + 's';
+  ptrEl.style.display = 'block';
+
+  // Highlight BVA table row
+  document.querySelectorAll('#bva-table tr[data-cat]').forEach(r => {
+    r.classList.toggle('hit', r.dataset.cat === cat);
+  });
+
+  updateOverallStatus();
+}
+
+function updateOverallStatus() {
+  const vals = {
+    red:    parseInt(document.getElementById('in-red').value, 10),
+    green:  parseInt(document.getElementById('in-green').value, 10),
+    yellow: parseInt(document.getElementById('in-yellow').value, 10),
+  };
+  const el = document.getElementById('overall-status');
+  const allValid = Object.entries(PHASES).every(([k, cfg]) => !isNaN(vals[k]) && isValid(vals[k], cfg.min, cfg.max));
+
+  if (allValid) {
+    el.style.borderColor = '#3ecf8e';
+    el.style.color = '#3ecf8e';
+    el.textContent = '✓ All phases valid — simulation can run.';
+  } else {
+    const invalid = Object.entries(PHASES).filter(([k, cfg]) => isNaN(vals[k]) || !isValid(vals[k], cfg.min, cfg.max)).map(([k]) => k);
+    el.style.borderColor = '#f76f6f';
+    el.style.color = '#f76f6f';
+    el.textContent = `✗ Invalid phase(s): ${invalid.join(', ')} — fix before running.`;
+  }
+}
+
+// ── Simulation ──
+let simRunning = false;
+let simTimer   = null;
+let simPhase   = 0; // 0=red, 1=green, 2=yellow
+const SIM_ORDER = ['red', 'green', 'yellow'];
+
+function startLight() {
+  const vals = {
+    red:    parseInt(document.getElementById('in-red').value, 10),
+    green:  parseInt(document.getElementById('in-green').value, 10),
+    yellow: parseInt(document.getElementById('in-yellow').value, 10),
+  };
+  const allValid = Object.entries(PHASES).every(([k, cfg]) => !isNaN(vals[k]) && isValid(vals[k], cfg.min, cfg.max));
+  if (!allValid) { updateOverallStatus(); return; }
+
+  stopLight();
+  simRunning = true;
+  simPhase = 0;
+  runPhase(vals);
+}
+
+function runPhase(vals) {
+  if (!simRunning) return;
+  const key  = SIM_ORDER[simPhase];
+  const cfg  = PHASES[key];
+  const dur  = vals[key];
+
+  // Reset all bulbs
+  Object.values(PHASES).forEach(p => document.getElementById(p.bulbId).className = 'bulb');
+  document.getElementById(cfg.bulbId).classList.add(cfg.cls);
+  document.getElementById('phase-label').textContent = cfg.label;
+
+  // Highlight active row
+  document.querySelectorAll('.phase-row').forEach(r => r.classList.remove('active'));
+  document.getElementById('row-' + key).classList.add('active');
+
+  let remaining = dur;
+  document.getElementById('phase-timer').textContent = remaining + 's';
+
+  const tick = setInterval(() => {
+    remaining--;
+    document.getElementById('phase-timer').textContent = remaining + 's';
+    if (remaining <= 0) {
+      clearInterval(tick);
+      simPhase = (simPhase + 1) % 3;
+      simTimer = setTimeout(() => runPhase(vals), 200);
+    }
+  }, 1000);
+
+  simTimer = tick; // store so we can clear
+}
+
+function stopLight() {
+  simRunning = false;
+  clearInterval(simTimer);
+  clearTimeout(simTimer);
+  Object.values(PHASES).forEach(p => document.getElementById(p.bulbId).className = 'bulb');
+  document.getElementById('phase-label').textContent = '—';
+  document.getElementById('phase-timer').textContent = '—';
+  document.querySelectorAll('.phase-row').forEach(r => r.classList.remove('active'));
+}
+
+// ── Presets ──
+function setScenario(name) {
+  const presets = {
+    sunny: { red: 30,  green: 25, yellow: 5 },
+    below: { red: 10,  green: 5,  yellow: 1 },
+    atmin: { red: 15,  green: 10, yellow: 3 },
+    atmax: { red: 60,  green: 45, yellow: 8 },
+    above: { red: 65,  green: 50, yellow: 11 },
+  };
+  const p = presets[name];
+  if (!p) return;
+  stopLight();
+  Object.keys(p).forEach(k => {
+    document.getElementById('in-' + k).value = p[k];
+    onPhaseInput(k);
+  });
+}
+
+// Init
+['red','green','yellow'].forEach(k => onPhaseInput(k));
+</script>
+</body>
+</html>
