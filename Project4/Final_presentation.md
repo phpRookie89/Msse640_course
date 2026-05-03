@@ -58,11 +58,11 @@ A production-grade Google microservices e-commerce demo (11 services written in 
 
 **Test 1 Final State — Item in cart, price verified:**
 
-![Add to Cart Test Final](Project4/screenshots/Add_item_to_cart_and_verify_price_matches__FINAL.png)
+![Add to Cart Test Final](screenshots/Add_item_to_cart_and_verify_price_matches__FINAL.png)
 
 **Test 2 — Homepage with product grid:**
 
-![Homepage Products](Project4/screenshots/Homepage_shows_products_and_product_detail_page_loads_correctly__01_homepage.png)
+![Homepage Products](screenshots/Homepage_shows_products_and_product_detail_page_loads_correctly__01_homepage.png)
 
 ---
 
@@ -77,7 +77,7 @@ A production-grade Google microservices e-commerce demo (11 services written in 
 | `testScalenePermutation` | (6, 4, 5) | Scalene | **PASS** |
 | `testZeroLengthSide` | (0, 5, 5) | Invalid | **PASS** |
 
-![Unit Tests Passing](Project1/screenshots/unit-test-passing.png)
+![Unit Tests Passing](../Project1/screenshots/unit-test-passing.png)
 
 **4/4 tests passing.**
 
@@ -98,7 +98,7 @@ A production-grade Google microservices e-commerce demo (11 services written in 
 | Create — Not a Triangle | POST | `/triangles` | 400 | **PASS** |
 | Create — Missing Value | POST | `/triangles` | 400 | **PASS** |
 
-![Flask API Running](Project2/screenshots/triangleRunning.png)
+![Flask API Running](../Project2/screenshots/triangleRunning.png)
 
 **10/10 requests passed all assertions.**
 
@@ -111,7 +111,7 @@ A production-grade Google microservices e-commerce demo (11 services written in 
 | Endurance / Soak | 200 | 8 hours | No memory leak / degradation | Configured & documented |
 | Load Test | 500 | 30 min steady-state | 95th pct ≤ 2 s | Configured & documented |
 
-![JMeter Load Test Results](Project3/screenshots/load_test_results.png)
+![JMeter Load Test Results](../Project3/screenshots/load_test_results.png)
 
 > Performance tests are infrastructure-dependent. Tests were configured against `your-app-domain.com` and fully documented with JMeter plans, listener screenshots, and server-monitoring commands. Threshold criteria (Apdex ≥ 0.94) defined in advance.
 
@@ -125,7 +125,7 @@ A production-grade Google microservices e-commerce demo (11 services written in 
 | `ProductBrowsingTest` | Browse homepage, click product, verify detail page loads | **PASS** |
 | `CartManagementTest` | Add item, empty cart, verify cart is empty | **PASS** |
 
-![Cart Empty Test Final](Project4/screenshots/Add_item_to_cart_then_empty_the_cart__FINAL.png)
+![Cart Empty Test Final](screenshots/Add_item_to_cart_then_empty_the_cart__FINAL.png)
 
 **3/3 tests passing** against the full 11-service Docker Compose stack.
 
